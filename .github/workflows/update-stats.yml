@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
+      - name: Wait briefly before scraping
+        run: sleep 10
+
       - name: Fetch latest stats and update game.js
         run: python scripts/fetch_player_stats.py
 
