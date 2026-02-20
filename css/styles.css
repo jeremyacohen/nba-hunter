@@ -254,10 +254,43 @@ html, body {
   border-radius: 50%;
   background: rgba(255,255,255,0.25);
   transition: background 0.4s, transform 0.3s;
+  position: relative;
 }
 
 .perf-dot.filled {
   transform: scale(1.15);
+  cursor: default;
+}
+
+/* Tooltip shown on hover for filled dots */
+.perf-dot.filled::after {
+  content: attr(data-subject) '\A' attr(data-category) ': ' attr(data-stat) '\A Rank #' attr(data-rank);
+  white-space: pre;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 30, 0.92);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+  min-width: 130px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+
+.perf-dot.filled:hover {
+  transform: scale(1.4);
+}
+
+.perf-dot.filled:hover::after {
+  opacity: 1;
 }
 
 .header-actions {

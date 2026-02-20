@@ -259,5 +259,87 @@ def main():
               f"{r['stl_rank']:>4} {r['blk_rank']:>4} {r['threePM_rank']:>4} "
               f"{r['fgPct_rank']:>4} {r['ftPct_rank']:>4} {r['tov_rank']:>4}")
 
+    update_game_js(PLAYERS_50, stats_map, rankings)
+
+def update_game_js(players_50, stats_map, rankings):
+    """
+    Patch the ranks:{...} block for each player in js/game.js
+    so the live site reflects the latest per-game stats.
+    """
+    import re, os
+
+    # Resolve path relative to this script's location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    game_js_path = os.path.join(script_dir, "..", "js", "game.js")
+
+    with open(game_js_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Build espnRank → player id mapping from the file
+    player_ids = re.findall(r"id:'(\w+)'[^\n]+espnRank:(\d+)", content)
+    id_to_rank  = {pid: int(rank) for pid, rank in player_ids}
+
+    # Also build br_name → ranks lookup keyed by espn_rank
+    rank_by_espn = {}
+    for p in players_50:
+        key = p["br_name"]
+        r   = rankings.get(key, {})
+        rank_by_espn[p["espn_rank"]] = {
+            "pts":     r.get("pts_rank",     50),
+            "reb":     r.get("reb_rank",     50),
+            "ast":     r.get("ast_rank",     50),
+            "stl":     r.get("stl_rank",     50),
+            "blk":     r.get("blk_rank",     50),
+            "threePM": r.get("threePM_rank", 50),
+            "fgPct":   r.get("fgPct_rank",   50),
+            "ftPct":   r.get("ftPct_rank",   50),
+            "tov":     r.get("tov_rank",     50),
+        }
+
+    # Also update raw stats in the stats:{...} block
+    stats_by_espn = {}
+    for p in players_50:
+        s = stats_map.get(p["br_name"], {})
+        stats_by_espn[p["espn_rank"]] = s
+
+    updated = 0
+    for pid, espn_rank in id_to_rank.items():
+        r = rank_by_espn.get(espn_rank)
+        s = stats_by_espn.get(espn_rank)
+        if not r:
+            continue
+
+        # Patch ranks:{...}
+        ranks_pattern = rf"(id:'{pid}'[^\n]+\n[^\n]+\n[^\n]*ranks:){{[^}}]+}}"
+        new_ranks = (
+            "{{ pts:{pts}, reb:{reb}, ast:{ast}, stl:{stl}, "
+            "blk:{blk}, threePM:{threePM}, fgPct:{fgPct}, "
+            "ftPct:{ftPct}, tov:{tov} }}"
+        ).format(**r)
+        new_content = re.sub(ranks_pattern, rf"\g<1>{new_ranks}", content)
+
+        # Patch stats:{...} if we have live stats
+        if s and new_content != content:
+            stats_pattern = rf"(id:'{pid}'[^\n]+\n[^\n]*stats:){{[^}}]+}}"
+            new_stats = (
+                "{{ pts:{pts:.1f}, reb:{reb:.1f}, ast:{ast:.1f}, stl:{stl:.1f}, "
+                "blk:{blk:.1f}, threePM:{threePM:.1f}, fgPct:{fgPct:.1f}, "
+                "ftPct:{ftPct:.1f}, tov:{tov:.1f} }}"
+            ).format(
+                pts=s.get('pts',0), reb=s.get('reb',0), ast=s.get('ast',0),
+                stl=s.get('stl',0), blk=s.get('blk',0), threePM=s.get('threePM',0),
+                fgPct=s.get('fgPct',0), ftPct=s.get('ftPct',0), tov=s.get('tov',0)
+            )
+            new_content = re.sub(stats_pattern, rf"\g<1>{new_stats}", new_content)
+
+        if new_content != content:
+            content = new_content
+            updated += 1
+
+    with open(game_js_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    print(f"✓ js/game.js updated ({updated}/50 players patched)")
+
 if __name__ == "__main__":
     main()
