@@ -22,10 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4
-
-      - name: Wait briefly before scraping
-        run: sleep 10
+        run: pip install requests
 
       - name: Fetch latest stats and update game.js
         run: python scripts/fetch_player_stats.py

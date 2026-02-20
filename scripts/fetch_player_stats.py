@@ -1,16 +1,15 @@
 """
-Fetch 2025-26 NBA per-game stats from Basketball Reference.
+Fetch 2025-26 NBA per-game stats from the official NBA Stats API (stats.nba.com).
 Rankings are calculated within the top-50 player pool only (1-50).
 Turnovers: rank 1 = most turnovers (highest value = rank 1, same as all other stats).
 Outputs:
   data/player_stats.csv    — raw per-game stats for our 50 players
   data/player_rankings.csv — 1-50 rankings per category (within the 50-player pool)
 """
-import requests
 import csv
 import time
 import unicodedata
-from bs4 import BeautifulSoup
+import requests
 
 # ── ESPN top-50 ranked players ────────────────────────────────────────────────
 PLAYERS_50 = [
@@ -74,97 +73,70 @@ def strip_diacritics(s):
 STRIPPED_LOOKUP = {strip_diacritics(k): v for k, v in NAME_LOOKUP.items()}
 
 
-def fetch_br_per_game():
-    url = "https://www.basketball-reference.com/leagues/NBA_2026_per_game.html"
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Referer": "https://www.basketball-reference.com/",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-    }
-    print(f"Fetching {url} …")
-    for attempt in range(1, 4):
-        time.sleep(attempt * 3)   # 3s, 6s, 9s between attempts
-        resp = requests.get(url, headers=headers, timeout=30)
-        if resp.status_code == 200:
-            break
-        print(f"  attempt {attempt} got {resp.status_code}, retrying …")
-    resp.raise_for_status()
-    resp.encoding = "utf-8"
-    return resp.text
+ESPN_STATS_URL = (
+    "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba"
+    "/seasons/2026/types/2/athletes/{espn_id}/statistics/0?lang=en&region=us"
+)
 
+STAT_KEYS = {
+    "avgPoints":                    "pts",
+    "avgRebounds":                  "reb",
+    "avgAssists":                   "ast",
+    "avgSteals":                    "stl",
+    "avgBlocks":                    "blk",
+    "avgThreePointFieldGoalsMade":  "threePM",
+    "fieldGoalPct":                 "fgPct",
+    "freeThrowPct":                 "ftPct",
+    "avgTurnovers":                 "tov",
+}
 
-def parse_per_game(html):
+def fetch_nba_stats():
     """
-    Parse the BR per-game table, returning stats only for our 50 players.
-    For traded players (TOT row), keeps the TOT row (combined season totals).
-    Returns {br_name: stats_dict} for the 50 players.
+    Fetch per-game stats for each of the 50 players from ESPN's Core API
+    using their ESPN IDs. Returns {br_name: stats_dict}.
     """
-    soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table", {"id": "per_game_stats"})
-    if not table:
-        raise ValueError("Could not find per_game_stats table in the HTML")
+    stats_map = {}
 
-    rows = table.find("tbody").find_all("tr")
-    found    = {}
-    seen_tot = set()
-
-    for row in rows:
-        if "thead" in (row.get("class") or []):
-            continue
-        cells = row.find_all(["td", "th"])
-        if len(cells) < 5:
+    for i, p in enumerate(PLAYERS_50):
+        url = ESPN_STATS_URL.format(espn_id=p["espn_id"])
+        try:
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            print(f"  ✗ {p['name']}: {e}")
             continue
 
-        name_td = row.find("td", {"data-stat": "name_display"})
-        if not name_td:
-            continue
-        name = name_td.get_text(strip=True).rstrip("*")
+        flat = {}
+        for cat in data.get("splits", {}).get("categories", []):
+            for stat in cat.get("stats", []):
+                flat[stat["name"]] = stat.get("value", 0.0)
 
-        player_meta = NAME_LOOKUP.get(name) or STRIPPED_LOOKUP.get(strip_diacritics(name))
-        if not player_meta:
-            continue
-
-        key = player_meta["br_name"]
-        team_td = row.find("td", {"data-stat": "team_id"})
-        team = team_td.get_text(strip=True) if team_td else ""
-
-        if key in seen_tot and team != "TOT":
-            continue
-        if team == "TOT":
-            seen_tot.add(key)
-
-        def get_stat(stat_name, default=0.0):
-            td = row.find("td", {"data-stat": stat_name})
-            if td is None:
-                return default
+        def g(key):
             try:
-                return float(td.get_text(strip=True))
-            except (ValueError, TypeError):
-                return default
+                return float(flat.get(key, 0.0))
+            except (TypeError, ValueError):
+                return 0.0
 
-        found[key] = {
-            "pts":     get_stat("pts_per_g"),
-            "reb":     get_stat("trb_per_g"),
-            "ast":     get_stat("ast_per_g"),
-            "stl":     get_stat("stl_per_g"),
-            "blk":     get_stat("blk_per_g"),
-            "threePM": get_stat("fg3_per_g"),
-            "fgPct":   round(get_stat("fg_pct") * 100, 1),
-            "ftPct":   round(get_stat("ft_pct") * 100, 1),
-            "tov":     get_stat("tov_per_g"),
-            "gp":      int(get_stat("g")),
-            "team":    team,
+        stats_map[p["br_name"]] = {
+            "pts":     round(g("avgPoints"),                   1),
+            "reb":     round(g("avgRebounds"),                 1),
+            "ast":     round(g("avgAssists"),                  1),
+            "stl":     round(g("avgSteals"),                   1),
+            "blk":     round(g("avgBlocks"),                   1),
+            "threePM": round(g("avgThreePointFieldGoalsMade"), 1),
+            "fgPct":   round(g("fieldGoalPct"),                1),
+            "ftPct":   round(g("freeThrowPct"),                1),
+            "tov":     round(g("avgTurnovers"),                1),
+            "gp":      0,
+            "team":    "",
         }
 
-    return found
+        if (i + 1) % 10 == 0:
+            print(f"  … {i+1}/50 fetched")
+        time.sleep(0.3)   # be polite
+
+    return stats_map
 
 
 def rank_players(stats_map):
@@ -231,18 +203,15 @@ def write_csvs(players_50, stats_map, rankings):
 
 
 def main():
-    html = fetch_br_per_game()
-    time.sleep(1)
-
-    stats_map = parse_per_game(html)
+    stats_map = fetch_nba_stats()
 
     missing = [p["name"] for p in PLAYERS_50 if p["br_name"] not in stats_map]
     if missing:
-        print(f"\n⚠ Players NOT found in BR table (will use zeros):")
+        print(f"\n⚠ Players NOT found in NBA API (will use zeros):")
         for m in missing:
             print(f"   - {m}")
 
-    print(f"\n✓ Found {len(stats_map)}/50 players in Basketball Reference")
+    print(f"\n✓ Found {len(stats_map)}/50 players via ESPN Core API")
 
     for p in PLAYERS_50:
         if p["br_name"] not in stats_map:
