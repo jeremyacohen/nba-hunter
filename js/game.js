@@ -523,9 +523,6 @@ const dom = {
   backBtn:         $('back-btn'),
   infoModal:       $('info-modal'),
   closeModalBtn:   $('close-modal-btn'),
-  hintBtn:         $('hint-btn'),
-  questionBtn:     $('question-btn'),
-  hintTooltip:     $('hint-tooltip'),
   endScore:        $('end-score'),
   endTargetResult: $('end-target-result'),
   endGrade:        $('end-grade'),
@@ -538,6 +535,8 @@ const dom = {
   modalTierLegend: $('modal-tier-legend'),
   bestPickToast:   $('best-pick-toast'),
   bestPickText:    $('best-pick-text'),
+  greatPickToast:  $('great-pick-toast'),
+  greatPickText:   $('great-pick-text'),
   shareBtn:        $('share-btn'),
 };
 
@@ -623,6 +622,20 @@ function showBestPickToast(catName, rank) {
     toast.classList.remove('show');
     toast.classList.add('hide');
   }, 2500);
+}
+
+let _greatTimer = null;
+function showGreatPickToast(rank) {
+  const toast = dom.greatPickToast;
+  if (!toast) return;
+  dom.greatPickText.textContent = rank === 1 ? '🔥 #1!' : '⭐ Top 5!';
+  clearTimeout(_greatTimer);
+  toast.classList.remove('hide');
+  toast.classList.add('show');
+  _greatTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+  }, 2000);
 }
 
 function getBestAvailableCat(subject) {
@@ -812,10 +825,15 @@ function handleCategoryClick(catId) {
   const tier = getRankTier(rank);
   const statDisplay = cat.format(subject);
 
-  // Show best-pick toast if the user didn't choose the optimal category
-  const bestCat = getBestAvailableCat(subject);
-  if (bestCat && bestCat.id !== catId) {
-    showBestPickToast(bestCat.name, subject.ranks[bestCat.id]);
+  // Show great-pick toast for top picks
+  if (rank <= 5) {
+    showGreatPickToast(rank);
+  } else {
+    // Show best-pick toast if the user didn't choose the optimal category
+    const bestCat = getBestAvailableCat(subject);
+    if (bestCat && bestCat.id !== catId) {
+      showBestPickToast(bestCat.name, subject.ranks[bestCat.id]);
+    }
   }
 
   state.usedCategories.add(catId);
@@ -1072,6 +1090,13 @@ function endGame() {
   });
 
   showScreen('end-screen');
+
+  // Check if score qualifies for any leaderboard period
+  checkQualification(state.totalScore, currentMode).then(periods => {
+    if (periods.length > 0) {
+      showNameEntryModal(state.totalScore, currentMode, periods);
+    }
+  });
 }
 
 /* ══════════════════════════════════════════════════
@@ -1120,25 +1145,6 @@ function updateInfoModal() {
   }
 }
 
-/* ══════════════════════════════════════════════════
-   HINT SYSTEM
-   ══════════════════════════════════════════════════ */
-let hintVisible = false;
-
-function showHint(text, anchorEl) {
-  const tt = dom.hintTooltip;
-  tt.textContent = text;
-  tt.classList.remove('hidden');
-  const rect = anchorEl.getBoundingClientRect();
-  tt.style.left = `${rect.left + rect.width / 2 - 130}px`;
-  tt.style.top  = `${rect.top - 10 - tt.offsetHeight}px`;
-  hintVisible = true;
-}
-
-function hideHint() {
-  dom.hintTooltip.classList.add('hidden');
-  hintVisible = false;
-}
 
 /* ══════════════════════════════════════════════════
    INFO MODAL
@@ -1149,52 +1155,6 @@ dom.infoModal.addEventListener('click', e => {
   if (e.target === dom.infoModal) dom.infoModal.classList.add('hidden');
 });
 
-/* ══════════════════════════════════════════════════
-   HINT BUTTON
-   ══════════════════════════════════════════════════ */
-dom.hintBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  if (state.phase !== 'picking' || !state.current) return;
-
-  const available = getCats()
-    .filter(c => !state.usedCategories.has(c.id))
-    .map(c => ({ cat: c, rank: state.current.ranks[c.id] }))
-    .sort((a, b) => a.rank - b.rank);
-
-  if (available.length === 0) return;
-  const best = available[0];
-
-  if (hintVisible) {
-    hideHint();
-  } else {
-    showHint(`💡 Best option: "${best.cat.name}" (Rank #${best.rank})`, dom.hintBtn);
-  }
-});
-
-/* ══════════════════════════════════════════════════
-   QUESTION BUTTON
-   ══════════════════════════════════════════════════ */
-dom.questionBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  if (!state.current) return;
-
-  let msg;
-  if (currentMode === 'player') {
-    const p = state.current;
-    msg = `${p.name} · ${p.teamName} · ESPN Rank #${p.espnRank} · ${p.stats.pts} PPG / ${p.stats.reb} RPG / ${p.stats.ast} APG`;
-  } else {
-    const t = state.current;
-    msg = `${t.name} · Championships: ${t.championships} · MVPs: ${t.mvps} · Hist Win%: ${(t.histWinPct*100).toFixed(1)}% · 2024-25: ${t.seasonRecord}`;
-  }
-
-  if (hintVisible) {
-    hideHint();
-  } else {
-    showHint(msg, dom.questionBtn);
-  }
-});
-
-document.addEventListener('click', () => { if (hintVisible) hideHint(); });
 
 /* ══════════════════════════════════════════════════
    BUTTON WIRING
@@ -1212,6 +1172,7 @@ dom.backBtn.addEventListener('click', () => {
 dom.playAgainBtn.addEventListener('click', () => startGame(currentMode));
 dom.menuBtn.addEventListener('click', () => showScreen('splash-screen'));
 dom.shareBtn.addEventListener('click', shareGame);
+
 
 
 document.querySelector('.header-logo').addEventListener('click', () => showScreen('splash-screen'));

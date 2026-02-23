@@ -710,6 +710,36 @@ html, body {
   font-size: 15px;
 }
 
+/* Great-pick toast (same position as best-pick toast, top-right) */
+.great-pick-toast {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  z-index: 200;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.great-pick-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.great-pick-toast.hide {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
 /* =====================================================
    END SCREEN
    ===================================================== */
@@ -1203,4 +1233,237 @@ html, body {
   .game-main {
     padding-top: 8px;
   }
+}
+
+/* =====================================================
+   LEADERBOARD BUTTONS — splash screen
+   ===================================================== */
+.splash-lb-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: -4px;
+}
+
+.btn-lb-link {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .btn-lb-link:hover {
+    background: rgba(255,255,255,0.2);
+  }
+}
+
+.btn-lb-link:active {
+  background: rgba(255,255,255,0.25);
+}
+
+/* =====================================================
+   LEADERBOARD BUTTON — end screen
+   ===================================================== */
+.btn-leaderboard {
+  display: block;
+  width: 100%;
+  padding: 13px 20px;
+  border: none;
+  border-radius: 14px;
+  background: #1e1b4b;
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .btn-leaderboard:hover {
+    background: #312e81;
+  }
+}
+
+.btn-leaderboard:active {
+  background: #3730a3;
+}
+
+/* =====================================================
+   LEADERBOARD MODAL
+   ===================================================== */
+.lb-modal-box {
+  max-width: 420px;
+  padding: 24px 20px;
+  gap: 14px;
+}
+
+.lb-tabs {
+  display: flex;
+  gap: 6px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.lb-tab {
+  flex: 1;
+  padding: 7px 4px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lb-tab.active {
+  background: #fff;
+  color: #1e1b4b;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Poppins', sans-serif;
+}
+
+.lb-table thead th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 8px 8px;
+  text-align: left;
+}
+
+.lb-table thead th.lb-score {
+  text-align: right;
+}
+
+.lb-table tbody tr {
+  border-top: 1px solid #f3f4f6;
+  transition: background 0.1s;
+}
+
+.lb-table tbody tr.lb-row-new {
+  background: #fef9c3;
+}
+
+.lb-table tbody td {
+  padding: 10px 8px;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.lb-table tbody td.lb-rank {
+  width: 36px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.lb-table tbody td.lb-name {
+  font-weight: 600;
+}
+
+.lb-table tbody td.lb-score {
+  text-align: right;
+  font-weight: 700;
+  color: #7c3aed;
+  min-width: 48px;
+}
+
+.lb-loading,
+.lb-empty {
+  text-align: center;
+  padding: 20px 8px;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+/* =====================================================
+   NAME ENTRY MODAL
+   ===================================================== */
+.name-entry-box {
+  max-width: 360px;
+  padding: 28px 24px;
+  gap: 12px;
+  text-align: center;
+  align-items: center;
+}
+
+.name-entry-trophy {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.name-entry-headline {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0;
+}
+
+.name-entry-score {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.name-entry-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.name-entry-input:focus {
+  border-color: #7c3aed;
+}
+
+.name-entry-error {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  color: #dc2626;
+  min-height: 1em;
+  margin: -4px 0;
+}
+
+.btn-text-link {
+  background: none;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
+}
+
+.btn-text-link:hover {
+  color: #6b7280;
 }
