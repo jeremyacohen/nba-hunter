@@ -944,49 +944,66 @@ function startGame(mode) {
 const TIER_EMOJI = ['🟢','🔵','🟡','🟠','🔴','⚫'];
 
 function buildShareText() {
-  const target  = getTarget();
-  const won     = state.totalScore <= target;
-  const mode    = currentMode === 'player' ? 'Player Hunter' : 'Team Hunter';
-  const grade   = gradeScore(state.totalScore);
-  const gradeClean = grade.replace(/[\u{1F300}-\u{1FBFF}]/gu, '').trim();
+  const target = getTarget();
+  const won    = state.totalScore <= target;
+  const mode   = currentMode === 'player' ? 'Player Hunter' : 'Team Hunter';
+  const grade  = gradeScore(state.totalScore);
 
-  const header = [
+  const lines = [
     `🏀 NBA Hunter – ${mode}`,
     `Score: ${state.totalScore} | Target: ≤ ${target}  ${won ? '🎯 WIN' : '❌'}`,
     grade,
-  ].join('\n');
+    '',
+  ];
 
-  const rounds = state.picks.map(pick => {
+  state.picks.forEach(pick => {
     const emoji = TIER_EMOJI[(pick.tier - 1)] || '⚫';
-    const subject = currentMode === 'player'
-      ? pick.subject.name
-      : pick.subject.name;
-    return `${emoji} ${subject} · ${pick.categoryName}: #${pick.rank}`;
-  }).join('\n');
+    lines.push(`${emoji} ${pick.subject.name} · ${pick.categoryName}: #${pick.rank}`);
+  });
 
-  const url = 'https://jeremyacohen.github.io/nba-hunter/';
-  return `${header}\n\n${rounds}\n\n${url}`;
+  return lines.join('\n');
 }
 
-async function shareGame() {
+function shareGame() {
+  const GAME_URL = 'https://jeremyacohen.github.io/nba-hunter/';
   const text = buildShareText();
+
+  // navigator.share must be called synchronously inside the click handler
   if (navigator.share) {
-    try {
-      await navigator.share({ text });
-      return;
-    } catch (e) {
-      if (e.name === 'AbortError') return; // user cancelled — do nothing
-    }
+    navigator.share({
+      title: 'NBA Hunter',
+      text,
+      url: GAME_URL,
+    }).catch(e => {
+      if (e.name !== 'AbortError') copyToClipboard(text + '\n\n' + GAME_URL);
+    });
+    return;
   }
-  // Fallback: copy to clipboard
-  try {
-    await navigator.clipboard.writeText(text);
-    const btn = dom.shareBtn;
-    const orig = btn.textContent;
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => { btn.textContent = orig; }, 2000);
-  } catch (_) {
-    alert(text);
+  copyToClipboard(text + '\n\n' + GAME_URL);
+}
+
+function copyToClipboard(text) {
+  const btn = dom.shareBtn;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✅ Copied to clipboard!';
+      setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    }).catch(() => alert(text));
+  } else {
+    // Last-resort fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ Copied to clipboard!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
   }
 }
 
@@ -1195,6 +1212,7 @@ dom.backBtn.addEventListener('click', () => {
 dom.playAgainBtn.addEventListener('click', () => startGame(currentMode));
 dom.menuBtn.addEventListener('click', () => showScreen('splash-screen'));
 dom.shareBtn.addEventListener('click', shareGame);
+
 
 document.querySelector('.header-logo').addEventListener('click', () => showScreen('splash-screen'));
 
