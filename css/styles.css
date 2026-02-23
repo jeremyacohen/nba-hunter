@@ -880,6 +880,27 @@ html, body {
   align-items: center;
 }
 
+.btn-share {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 11px 20px;
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  background: transparent;
+  color: #7c3aed;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-share:hover {
+  background: #7c3aed;
+  color: #fff;
+}
+
 /* =====================================================
    INFO MODAL
    ===================================================== */

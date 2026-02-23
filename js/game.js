@@ -538,6 +538,7 @@ const dom = {
   modalTierLegend: $('modal-tier-legend'),
   bestPickToast:   $('best-pick-toast'),
   bestPickText:    $('best-pick-text'),
+  shareBtn:        $('share-btn'),
 };
 
 /* ══════════════════════════════════════════════════
@@ -938,6 +939,58 @@ function startGame(mode) {
 }
 
 /* ══════════════════════════════════════════════════
+   SHARE RESULT
+   ══════════════════════════════════════════════════ */
+const TIER_EMOJI = ['🟢','🔵','🟡','🟠','🔴','⚫'];
+
+function buildShareText() {
+  const target  = getTarget();
+  const won     = state.totalScore <= target;
+  const mode    = currentMode === 'player' ? 'Player Hunter' : 'Team Hunter';
+  const grade   = gradeScore(state.totalScore);
+  const gradeClean = grade.replace(/[\u{1F300}-\u{1FBFF}]/gu, '').trim();
+
+  const header = [
+    `🏀 NBA Hunter – ${mode}`,
+    `Score: ${state.totalScore} | Target: ≤ ${target}  ${won ? '🎯 WIN' : '❌'}`,
+    grade,
+  ].join('\n');
+
+  const rounds = state.picks.map(pick => {
+    const emoji = TIER_EMOJI[(pick.tier - 1)] || '⚫';
+    const subject = currentMode === 'player'
+      ? pick.subject.name
+      : pick.subject.name;
+    return `${emoji} ${subject} · ${pick.categoryName}: #${pick.rank}`;
+  }).join('\n');
+
+  const url = 'https://jeremyacohen.github.io/nba-hunter/';
+  return `${header}\n\n${rounds}\n\n${url}`;
+}
+
+async function shareGame() {
+  const text = buildShareText();
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // user cancelled — do nothing
+    }
+  }
+  // Fallback: copy to clipboard
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = dom.shareBtn;
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  } catch (_) {
+    alert(text);
+  }
+}
+
+/* ══════════════════════════════════════════════════
    END GAME
    ══════════════════════════════════════════════════ */
 function endGame() {
@@ -1141,6 +1194,7 @@ dom.backBtn.addEventListener('click', () => {
 });
 dom.playAgainBtn.addEventListener('click', () => startGame(currentMode));
 dom.menuBtn.addEventListener('click', () => showScreen('splash-screen'));
+dom.shareBtn.addEventListener('click', shareGame);
 
 document.querySelector('.header-logo').addEventListener('click', () => showScreen('splash-screen'));
 
