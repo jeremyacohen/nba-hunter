@@ -337,7 +337,8 @@ html, body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 0 12px 50px;
+  /* extra bottom padding accounts for floating browser UI (e.g. Firefox menu) and notch */
+  padding: 0 12px calc(70px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
 }
 
@@ -520,8 +521,10 @@ html, body {
   border-bottom: none;
 }
 
-.category-tile:hover:not(.selected):not(.disabled) {
-  background: #f5f3ff;
+@media (hover: hover) {
+  .category-tile:hover:not(.selected):not(.disabled) {
+    background: #f5f3ff;
+  }
 }
 
 .category-tile.disabled {

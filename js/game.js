@@ -482,7 +482,7 @@ let currentMode = 'team';  // 'team' | 'player'
 function getData()    { return currentMode === 'team' ? TEAMS : PLAYERS; }
 function getCats()    { return currentMode === 'team' ? TEAM_CATEGORIES : PLAYER_CATEGORIES; }
 function getRounds()  { return currentMode === 'team' ? 8 : 9; }
-function getTarget()  { return currentMode === 'team' ? 40 : 45; }
+function getTarget()  { return currentMode === 'team' ? 40 : 70; }
 
 /* ══════════════════════════════════════════════════
    GAME STATE
@@ -584,10 +584,10 @@ function tierLabel(tier) {
 
 function gradeScore(score) {
   if (currentMode === 'player') {
-    if (score <= 25)  return '🌟 Legendary! Are you Jokic?';
-    if (score <= 40)  return '💪 Excellent!';
-    if (score <= 55)  return '👍 Good game!';
-    if (score <= 80)  return '😬 Not bad.';
+    if (score <= 50)  return '🌟 Legendary! Are you Jokic?';
+    if (score <= 60)  return '💪 Excellent!';
+    if (score <= 70)  return '👍 Good game!';
+    if (score <= 90)  return '😬 Not bad.';
     if (score <= 120) return '😟 Keep practicing!';
     return '💀 Better luck next time.';
   }
@@ -1019,7 +1019,7 @@ function updateInfoModal() {
       <li>Your score equals the sum of the 9 ranks you pick (ranked among the top 50).</li>
       <li><strong>Lower rank = lower score = better!</strong> Rank 1 is the best.</li>
       <li>For <strong>Turnovers</strong>, rank 1 = most turnovers (highest in the pool).</li>
-      <li>Beat a total score of <strong>≤ 45</strong> to win the game.</li>
+      <li>Beat a total score of <strong>≤ 70</strong> to win the game.</li>
     `;
     dom.modalTierLegend.innerHTML = `
       <div class="legend-row"><span class="legend-dot tier-1-bg"></span> Rank 1–8: Elite</div>
